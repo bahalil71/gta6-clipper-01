@@ -33,9 +33,15 @@ function assertYouTubeUrl(raw: string): void {
 
 mkdirSync(OUTPUT_DIR, { recursive: true });
 
+// Fail closed: the gate reads VIDEO.json bytes, so a silent short copy is worse
+// than a loud exit. Verify the bytes that landed before reporting success.
 try {
-  assertYouTubeUrl(readFileSync(SOURCE, 'utf8'));
+  const sourceBytes = readFileSync(SOURCE);
+  assertYouTubeUrl(sourceBytes.toString('utf8'));
   copyFileSync(SOURCE, TARGET);
+  if (!readFileSync(TARGET).equals(sourceBytes)) {
+    throw new Error('the copy does not match the source byte for byte');
+  }
 } catch (err) {
   console.error(`VIDEO.json could not be carried from ${BOT_DIR} to ${OUTPUT_DIR}: ${(err as Error).message}`);
   process.exit(1);
